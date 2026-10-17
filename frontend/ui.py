@@ -123,4 +123,8 @@ with gr.Blocks(title="Label Lens", css=CSS, js=JS, head=HEAD, theme=gr.themes.Ba
     go.click(run, [img, profile], out)
 
 if __name__ == "__main__":
+<<<<<<< HEAD
     demo.launch(server_name="0.0.0.0")
+=======
+    demo.launch(server_name="0.0.0.0", css=CSS, share=True)
+>>>>>>> 66f706b0b3a33fb4c90aabdc322bd3ccdcb429d4
