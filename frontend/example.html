@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f7f2">
+  <title>Label Lens | Example UI</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="ll-page">
+    <header class="ll-header" id="top">
+      <a class="ll-brand" href="#top" aria-label="Label Lens home">
+        <span class="ll-brand-mark" aria-hidden="true">LL</span>
+        <span><strong>label lens</strong><small>ITALIAN LABEL, MADE CLEAR</small></span>
+      </a>
+      <button class="ll-menu-toggle" type="button" aria-expanded="false" aria-controls="ll-nav" aria-label="Open navigation">
+        <span></span><span></span><span></span>
+      </button>
+      <nav class="ll-nav" id="ll-nav" aria-label="Main navigation">
+        <a href="#scan-panel">Scan a label</a>
+        <a href="#profile-panel">Your profile</a>
+        <button type="button" class="ll-nav-safety" data-dialog-open="ll-safety-dialog">Safety note</button>
+      </nav>
+    </header>
+
+    <section class="ll-intro">
+      <p class="ll-kicker">A little more clarity at the table</p>
+      <h1>Know what's<br><span>on the label.</span></h1>
+      <p>Photograph an Italian food label. Get a plain-English verdict, ingredients and the right words to ask.</p>
+    </section>
+
+    <section class="ll-section-heading">
+      <div><p class="ll-kicker">Your next meal, understood</p><h2>Start with the package</h2></div>
+      <span class="ll-step">01 / SCAN</span>
+    </section>
+    <div class="ll-workspace">
+      <section class="ll-panel ll-scan-panel" id="scan-panel" aria-labelledby="scan-title">
+        <div class="ll-panel-heading">
+          <span class="ll-step" aria-hidden="true">01</span>
+          <div><h2 id="scan-title">Scan the label</h2><p>Use a clear, well-lit photo of the ingredients.</p></div>
+        </div>
+        <label class="ll-file-control" for="demo-image">
+          <span class="ll-file-mark" aria-hidden="true">+</span>
+          <span><strong>Choose a photo</strong><small>or take one with your camera</small></span>
+        </label>
+        <input id="demo-image" class="ll-file-input" type="file" accept="image/*" capture="environment" aria-label="Choose or take a label photo">
+        <img id="demo-preview" class="ll-preview" alt="Preview of the selected label photo" hidden>
+        <button class="ll-button" id="demo-analyze" type="button">Analyze label</button>
+      </section>
+
+      <section class="ll-panel ll-profile-panel" id="profile-panel" aria-labelledby="profile-title">
+        <div class="ll-panel-heading">
+          <span class="ll-step" aria-hidden="true">02</span>
+          <div><h2 id="profile-title">Your food profile</h2><p>Set the preferences that matter to you.</p></div>
+        </div>
+        <details class="ll-preferences" open>
+          <summary>Diet and preferences</summary>
+          <fieldset><legend>Diet</legend>
+            <label><input type="checkbox" name="diet" value="vegetarian"> Vegetarian</label>
+            <label><input type="checkbox" name="diet" value="vegan"> Vegan</label>
+            <label><input type="checkbox" name="diet" value="halal"> Halal</label>
+            <label><input type="checkbox" name="diet" value="kosher"> Kosher</label>
+          </fieldset>
+          <fieldset><legend>Allergens to avoid</legend>
+            <label><input type="checkbox" name="allergen" value="gluten"> Gluten</label>
+            <label><input type="checkbox" name="allergen" value="milk"> Milk</label>
+            <label><input type="checkbox" name="allergen" value="eggs"> Eggs</label>
+            <label><input type="checkbox" name="allergen" value="peanuts"> Peanuts</label>
+          </fieldset>
+          <fieldset><legend>Goals</legend>
+            <label><input type="checkbox" name="goal" value="less-sugar"> Less sugar</label>
+            <label><input type="checkbox" name="goal" value="less-salt"> Less salt</label>
+          </fieldset>
+        </details>
+      </section>
+    </div>
+
+    <section class="ll-results-heading" aria-labelledby="results-title">
+      <p class="ll-kicker">Example result</p><h2 id="results-title">What's inside</h2>
+    </section>
+    <section class="ll-card" aria-label="Example label analysis">
+      <div class="ll-verdict ll-AVOID" role="status">
+        <span class="ll-eyebrow">LABEL LENS VERDICT</span>
+        <h2>AVOID</h2><p>Biscotti frollini al burro</p>
+        <p>Contains wheat flour, which has gluten (your profile: gluten-free)</p>
+      </div>
+      <div class="ll-sec"><h3>Allergens detected</h3>
+        <span class="ll-chip">cereals containing gluten</span><span class="ll-chip">milk</span><span class="ll-chip">eggs</span>
+        <p><small>Allergens not listed here were not detected on this label.</small></p>
+      </div>
+      <div class="ll-sec ll-notice">Check the physical package if you have an allergy. Label Lens is an aid, not medical advice.</div>
+      <div class="ll-sec"><h3>Ingredients (English)</h3>
+        <span class="ll-chip">wheat flour</span><span class="ll-chip">butter</span><span class="ll-chip">sugar</span><span class="ll-chip">eggs</span><span class="ll-chip">salt</span>
+      </div>
+      <div class="ll-sec ll-staff"><h3>Ask the staff</h3><p><b>Questo prodotto contiene glutine?</b><br>Does this product contain gluten?</p>
+        <button type="button" class="ll-copy-button" data-copy-text="Does this product contain gluten?">Copy question</button>
+      </div>
+    </section>
+
+    <footer class="ll-footer"><span class="ll-brand-mark" aria-hidden="true">LL</span><span>Label Lens<small>Read clearly. Choose confidently.</small></span></footer>
+  </main>
+  <div class="ll-toast" id="ll-toast" role="status" aria-live="polite"></div>
+  <dialog class="ll-dialog" id="ll-safety-dialog" aria-labelledby="ll-dialog-title">
+    <div class="ll-dialog-inner">
+      <button type="button" class="ll-dialog-close" data-dialog-close aria-label="Close safety note">Close</button>
+      <p class="ll-kicker">Important</p><h2 id="ll-dialog-title">Use the package as your source of truth.</h2>
+      <p>Label Lens is an aid, not medical advice. If you have an allergy, always check the physical package and ask the manufacturer or staff.</p>
+    </div>
+  </dialog>
+  <script src="app.js"></script>
+  <script>window.addEventListener("DOMContentLoaded", () => window.LabelLensUI.init());</script>
+</body>
+</html>
