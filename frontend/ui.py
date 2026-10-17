@@ -2,9 +2,24 @@ import html
 import inspect
 import gradio as gr
 from PIL import Image, ImageOps
+import io
+from backend.app.config import (get_settings)
+from backend.app.models import DietProfile
+from backend.app.services.analyzer import GeminiLabelAnalyzer
 
-# TODO: quando A pusha, cambiare in: from <file_di_A> import analyze
-from analyze_stub import analyze
+_analyzer = None
+
+def analyze(image, profile):
+    """Adapter: PIL image + profile dict -> dict, same contract as the stub."""
+    global _analyzer
+    if _analyzer is None:
+        _analyzer = GeminiLabelAnalyzer(get_settings())
+    buf = io.BytesIO()
+    image.save(buf, format="JPEG", quality=90)
+    result = _analyzer.analyze(
+        buf.getvalue(), "image/jpeg", DietProfile.model_validate(profile)
+    )
+    return result.model_dump(mode="json")
 
 ALLERGENS = [
     "cereals containing gluten", "crustaceans", "eggs", "fish", "peanuts",
