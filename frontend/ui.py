@@ -2,7 +2,7 @@ import html
 import gradio as gr
 
 #we have to change this line to fare cose with the frontend
-from frontend.analyze_stub import analyze
+from analyze_stub import analyze
 
 ALLERGENS = [
     "cereals containing gluten", "crustaceans", "eggs", "fish", "peanuts",
