@@ -1,0 +1,19 @@
+{
+  "readable": true,
+  "confidence": "high",
+  "product_name": "Biscotti frollini al burro",
+  "ingredients_it": ["farina di frumento", "burro", "zucchero", "uova", "sale"],
+  "ingredients_en": ["wheat flour", "butter", "sugar", "eggs", "salt"],
+  "allergens_detected": ["cereals containing gluten", "milk", "eggs"],
+  "verdict": "AVOID",
+  "reasons": ["Contains wheat flour, which has gluten (your profile: gluten-free)"],
+  "vocab": [
+    { "it": "farina di frumento", "en": "wheat flour" },
+    { "it": "burro", "en": "butter" },
+    { "it": "uova", "en": "eggs" }
+  ],
+  "staff_phrase": {
+    "it": "Questo prodotto contiene glutine?",
+    "en": "Does this product contain gluten?"
+  }
+}
