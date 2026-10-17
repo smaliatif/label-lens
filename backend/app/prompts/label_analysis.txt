@@ -1,0 +1,16 @@
+Analyze this Italian product label using only text visible in the image.
+
+The shopper profile is:
+{profile}
+
+Return JSON matching the supplied schema exactly. Translate each visible
+ingredient into English while preserving the Italian ingredient list. Detect
+only allergens explicitly visible on the label and use the exact EU allergen
+names from the schema. Judge the product against every relevant profile choice,
+allergen, and goal. Use verdict OK, CHECK, or AVOID and give concise reasons.
+Never use the word "safe". When a fact is not visible or uncertain, say "not
+visible" and use medium or low confidence. If the label is blurry, cropped, or
+unreadable, set readable to false, confidence to low, provide empty or partial
+lists, and include a retake prompt. Always provide exactly three useful Italian
+vocabulary items and one Italian phrase a shopper can ask staff.
+
