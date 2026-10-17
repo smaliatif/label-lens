@@ -1,8 +1,9 @@
 import html
-from pathlib import Path
+import inspect
 import gradio as gr
+from PIL import Image, ImageOps
 
-#we have to change this line to fare cose with the frontend
+# TODO: quando A pusha, cambiare in: from <file_di_A> import analyze
 from analyze_stub import analyze
 
 ALLERGENS = [
@@ -16,21 +17,36 @@ DEFAULT_PROFILE = {"diets": [], "allergens": [], "goals": []}
 
 NOTICE = ("Check the physical package if you have an allergy. "
           "Label Lens is an aid, not medical advice.")
-VERDICT_ICON = {"OK": "&#10003;", "CHECK": "!", "AVOID": "&#10005;"}
 
-ASSET_DIR = Path(__file__).parent
-CSS = (ASSET_DIR / "styles.css").read_text(encoding="utf-8")
-JS_SOURCE = (ASSET_DIR / "app.js").read_text(encoding="utf-8")
-JS = f"() => {{\n{JS_SOURCE}\nwindow.LabelLensUI.init();\n}}"
+CSS = """
+.gradio-container { max-width: 520px !important; margin: 0 auto !important; padding: 8px !important; }
+.ll-card { font-family: system-ui, sans-serif; line-height: 1.45; }
+.ll-verdict { border-radius: 16px; padding: 20px; color: #fff; margin-bottom: 14px; }
+.ll-verdict h2 { margin: 0 0 4px; font-size: 2.4rem; letter-spacing: .04em; color: #fff; }
+.ll-verdict p { margin: 4px 0; color: #fff; font-size: 1.05rem; }
+.ll-OK { background: #1f7a4d; } .ll-CHECK { background: #a86a00; } .ll-AVOID { background: #b3261e; }
+.ll-sec { margin: 16px 0; } .ll-sec h3 { margin: 0 0 6px; font-size: 1.05rem; }
+.ll-chip { display: inline-block; padding: 6px 12px; margin: 3px 4px 3px 0;
+           border-radius: 999px; background: rgba(128,128,128,.18); font-size: .95rem; }
+.ll-notice { border-left: 4px solid #b3261e; padding: 10px 12px; background: rgba(179,38,30,.1); border-radius: 6px; }
+.ll-retake { border: 2px dashed #a86a00; padding: 12px; border-radius: 10px; margin-bottom: 12px; }
+.ll-staff-it { font-size: 1.25rem; }
+.ll-hint { margin: 0 0 6px; opacity: .75; font-size: .95rem; }
 
-# Mobile browser chrome matches the dark UI
-HEAD = '<meta name="theme-color" content="#0d1310"><meta name="color-scheme" content="dark">'
+/* touch-friendly controls */
+button.lg { min-height: 58px !important; font-size: 1.15rem !important; border-radius: 14px !important; }
+.ll-profile label { min-height: 44px; display: flex; align-items: center; }
+.ll-profile input[type=checkbox] { width: 22px; height: 22px; }
+"""
+
 
 def esc(x):
     return html.escape(str(x))
 
+
 def chips(items):
     return "".join(f'<span class="ll-chip">{esc(i)}</span>' for i in items) or "<em>none</em>"
+
 
 def render(r: dict) -> str:
     retake = ""
@@ -43,88 +59,91 @@ def render(r: dict) -> str:
     reasons = "".join(f"<p>{esc(x)}</p>" for x in r.get("reasons", []))
     vocab = "".join(f"<li><b>{esc(w['it'])}</b> = {esc(w['en'])}</li>" for w in r.get("vocab", []))
     sp = r.get("staff_phrase", {})
-    staff_phrase = sp.get("en", "")
     return f"""<div class="ll-card">
 {retake}
-<div class="ll-verdict ll-{v}" role="status"><div class="ll-verdict-icon" aria-hidden="true">{VERDICT_ICON[v]}</div><span class="ll-eyebrow">Label Lens verdict</span><h2>{v}</h2><p>{esc(r.get('product_name') or 'Unknown product')}</p>{reasons}</div>
+<div class="ll-verdict ll-{v}"><h2>{v}</h2><p>{esc(r.get('product_name') or 'Unknown product')}</p>{reasons}</div>
 <div class="ll-sec"><h3>Allergens detected</h3>{chips(r.get('allergens_detected', []))}
 <p><small>Allergens not listed here were not detected on this label.</small></p></div>
 <div class="ll-sec ll-notice">{NOTICE}</div>
 <div class="ll-sec"><h3>Ingredients (English)</h3>{chips(r.get('ingredients_en', []))}</div>
 <div class="ll-sec"><h3>Learn the words</h3><ul>{vocab}</ul></div>
-<div class="ll-sec ll-staff"><h3>Ask the staff</h3><p><b>{esc(sp.get('it',''))}</b><br>{esc(staff_phrase)}</p>
-<button type="button" class="ll-copy-button" data-copy-text="{html.escape(staff_phrase, quote=True)}">Copy question</button></div>
+<div class="ll-sec"><h3>Ask the staff</h3><p><span class="ll-staff-it"><b>{esc(sp.get('it',''))}</b></span><br>{esc(sp.get('en',''))}</p></div>
 </div>"""
+
 
 def run(image, profile):
     if image is None:
         raise gr.Error("Take or upload a photo of the label first.")
     try:
+        # fix phone orientation, drop alpha, cap size for speed (keeps text readable)
+        image = ImageOps.exif_transpose(image).convert("RGB")
+        image.thumbnail((1600, 1600), Image.Resampling.LANCZOS)
         return render(analyze(image, profile or DEFAULT_PROFILE))
     except Exception as e:
         raise gr.Error(f"Analysis failed: {e}")
+
 
 def load_profile(profile):
     p = profile or DEFAULT_PROFILE
     return p["diets"], p["allergens"], p["goals"]
 
+
 def save_profile(diets, allergens, goals):
     return {"diets": diets, "allergens": allergens, "goals": goals}
 
-with gr.Blocks(title="Label Lens", css=CSS, js=JS, head=HEAD, theme=gr.themes.Base()) as demo:
+
+def profile_summary(diets, allergens, goals):
+    n = len(diets) + len(allergens) + len(goals)
+    if n == 0:
+        return "No profile set: results will be generic."
+    parts = list(diets) + [f"no {a}" for a in allergens] + list(goals)
+    return "Active profile: " + ", ".join(parts)
+
+
+# --- Compatibility: Gradio versions differ in where css and webcam options go ---
+IMG_PARAMS = inspect.signature(gr.Image.__init__).parameters
+CAM = {"video": {
+    "facingMode": {"ideal": "environment"},  # rear camera
+    "width": {"ideal": 1920},
+    "height": {"ideal": 1080},
+}}
+img_kwargs = {}
+if "webcam_options" in IMG_PARAMS:
+    img_kwargs["webcam_options"] = gr.WebcamOptions(mirror=False, constraints=CAM)
+else:
+    img_kwargs["mirror_webcam"] = False
+    if "webcam_constraints" in IMG_PARAMS:
+        img_kwargs["webcam_constraints"] = CAM
+
+BLOCKS_PARAMS = inspect.signature(gr.Blocks.__init__).parameters
+blocks_kwargs = {"title": "Label Lens"}
+if "css" in BLOCKS_PARAMS:
+    blocks_kwargs["css"] = CSS
+
+with gr.Blocks(**blocks_kwargs) as demo:
     profile = gr.BrowserState(DEFAULT_PROFILE, storage_key="label_lens_profile")
-    gr.HTML("""
-        <header class="ll-header" id="top">
-            <a class="ll-brand" href="#top" aria-label="Label Lens home">
-                <span class="ll-brand-mark" aria-hidden="true">LL</span>
-                <span><strong>label lens</strong><small>Italian labels, made clear</small></span>
-            </a>
-            <button class="ll-menu-toggle" type="button" aria-expanded="false" aria-controls="ll-nav" aria-label="Open navigation">
-                <span></span><span></span><span></span>
-            </button>
-            <nav class="ll-nav" id="ll-nav" aria-label="Main navigation">
-                <a href="#scan-panel">Scan a label</a><a href="#profile-panel">Your profile</a>
-                <button type="button" class="ll-nav-safety" data-dialog-open="ll-safety-dialog">Safety note</button>
-            </nav>
-        </header>
-        <section class="ll-intro">
-            <p class="ll-kicker">A little more clarity at the table</p>
-            <h1>Know what&rsquo;s on the label.</h1>
-            <p>Photograph an Italian food label. Get a plain-English verdict, ingredients and the right words to ask.</p>
-        </section>
-        <dialog class="ll-dialog" id="ll-safety-dialog" aria-labelledby="ll-dialog-title">
-            <div class="ll-dialog-inner">
-                <button type="button" class="ll-dialog-close" data-dialog-close aria-label="Close safety note">Close</button>
-                <p class="ll-kicker">Important</p><h2 id="ll-dialog-title">Use the package as your source of truth.</h2>
-                <p>Label Lens is an aid, not medical advice. If you have an allergy, always check the physical package and ask the manufacturer or staff.</p>
-            </div>
-        </dialog>
-        """)
-    gr.HTML('<div class="ll-toast" id="ll-toast" role="status" aria-live="polite"></div>')
-    with gr.Row(elem_classes="ll-workspace"):
-        with gr.Column(scale=7, min_width=280, elem_id="scan-panel", elem_classes="ll-panel ll-scan-panel"):
-            gr.HTML('<div class="ll-panel-heading"><h2>Scan the label</h2><p>Use a clear, well-lit photo of the ingredients.</p></div>')
-            img = gr.Image(sources=["upload", "webcam"], type="pil", label="Label photo", height=300, elem_id="scan-image")
-            go = gr.Button("Analyze label", variant="primary", elem_classes="ll-button", elem_id="analyze-btn")
-        with gr.Column(scale=5, min_width=280, elem_id="profile-panel", elem_classes="ll-panel ll-profile-panel"):
-            gr.HTML('<div class="ll-panel-heading"><h2>Your food profile</h2><p>Saved in this browser for your next scan.</p></div>')
-            # Closed by default: on a phone the results stay close to the Analyze button
-            with gr.Accordion("Diet and preferences", open=False, elem_id="profile-accordion"):
-                diets = gr.CheckboxGroup(DIETS, label="Diet")
-                allergens = gr.CheckboxGroup(ALLERGENS, label="Allergens to avoid")
-                goals = gr.CheckboxGroup(GOALS, label="Goals")
-    gr.HTML('<section class="ll-results-heading" id="results-heading"><h2>What&rsquo;s inside</h2></section>')
-    out = gr.HTML(elem_id="results")
-    gr.HTML('<footer class="ll-footer"><span class="ll-brand-mark" aria-hidden="true">LL</span><span>Label Lens <small>Read clearly. Choose confidently.</small></span></footer>')
+    gr.Markdown("# Label Lens\nPhoto of an Italian label in, plain-English verdict out.")
+
+    gr.HTML('<p class="ll-hint">1. Photograph the ingredients list, flat and well lit.</p>')
+    img = gr.Image(sources=["upload", "webcam"], type="pil", label="Label photo",
+                   height=320, **img_kwargs)
+    go = gr.Button("Analyze label", variant="primary", elem_classes="lg")
+    out = gr.HTML()
+
+    summary = gr.Markdown(profile_summary([], [], []))
+    with gr.Accordion("My diet profile (tap to edit)", open=False, elem_classes="ll-profile"):
+        diets = gr.CheckboxGroup(DIETS, label="Diet")
+        allergens = gr.CheckboxGroup(ALLERGENS, label="Allergens to avoid")
+        goals = gr.CheckboxGroup(GOALS, label="Goals")
 
     for c in (diets, allergens, goals):
         c.change(save_profile, [diets, allergens, goals], profile)
+        c.change(profile_summary, [diets, allergens, goals], summary)
     demo.load(load_profile, profile, [diets, allergens, goals])
-    go.click(run, [img, profile], out)
+    go.click(run, [img, profile], out, scroll_to_output=True, show_progress="minimal")
 
 if __name__ == "__main__":
-<<<<<<< HEAD
-    demo.launch(server_name="0.0.0.0")
-=======
-    demo.launch(server_name="0.0.0.0", css=CSS, share=True)
->>>>>>> 66f706b0b3a33fb4c90aabdc322bd3ccdcb429d4
+    launch_kwargs = {"server_name": "0.0.0.0", "share": True}
+    if "css" in inspect.signature(demo.launch).parameters:
+        launch_kwargs["css"] = CSS
+    demo.launch(**launch_kwargs)
